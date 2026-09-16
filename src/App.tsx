@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, Triangle } from 'lucide-react'
 import AdminPage from './AdminPage'
+import About from './components/About'
 import Footer from './components/Footer'
 import Works from './components/Works'
 import {
@@ -43,13 +44,6 @@ type Translation = {
 }
 
 const LANGUAGE_STORAGE_KEY = 'site-language'
-const categoryStyles = [
-  'font-playfair',
-  'font-oswald uppercase',
-  'font-montserrat',
-  'font-roboto-slab uppercase',
-  'font-raleway',
-]
 
 const translations: Record<Language, Translation> = {
   'zh-CN': {
@@ -71,6 +65,7 @@ const translations: Record<Language, Translation> = {
       portrait: '人像',
       landscape: '风景',
       daily: '日常',
+      wedding: '婚礼',
     },
     language: {
       label: '语言选择',
@@ -105,6 +100,7 @@ const translations: Record<Language, Translation> = {
       portrait: 'PORTRAIT',
       landscape: 'LANDSCAPE',
       daily: 'DAILY',
+      wedding: 'WEDDING',
     },
     language: {
       label: 'Language selection',
@@ -359,12 +355,12 @@ function CategoryLinks({
         {copy.backedBy}
       </p>
       <div className="animate-fade-up stagger-6 flex flex-wrap items-center justify-start gap-6 md:gap-12 lg:gap-16">
-        {photoCategories.map((category, index) => (
+        {photoCategories.map((category) => (
           <button
             type="button"
             key={category}
             onClick={() => onCategorySelect(category)}
-            className={`whitespace-nowrap text-lg text-brand-dark/80 transition-opacity hover:opacity-60 md:text-xl lg:text-2xl ${categoryStyles[index]}`}
+            className="whitespace-nowrap font-playfair text-lg text-brand-dark/80 transition-opacity hover:opacity-60 md:text-xl lg:text-2xl"
           >
             {copy.categories[category]}
           </button>
@@ -384,14 +380,38 @@ function Hero({
   onCategorySelect: (category: PhotoCategory) => void
 }) {
   const [videoFailed, setVideoFailed] = useState(false)
+  // 下滑进度 0→1：驱动视频视差与文案淡出，让首屏平滑过渡到作品区。
+  const [scrollProgress, setScrollProgress] = useState(0)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    let frame = 0
+    const handleScroll = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        setScrollProgress(Math.min(window.scrollY / window.innerHeight, 1))
+      })
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   return (
     <section
       id="hero"
-      className="relative h-screen min-h-[700px] w-full overflow-hidden bg-brand-cream"
+      className="snap-section relative h-screen min-h-[700px] w-full overflow-hidden bg-brand-cream"
     >
       {!videoFailed && (
-        <div className="absolute inset-0">
+        <div
+          className="absolute inset-0 will-change-transform"
+          style={{ transform: `translateY(${scrollProgress * 120}px) scale(1.05)` }}
+        >
           <video
             autoPlay
             muted
@@ -405,7 +425,16 @@ function Hero({
         </div>
       )}
 
-      <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-start px-6 pt-28 md:pt-36 lg:px-8">
+      {/* 底部渐变：视频平滑融入下方作品区的米色背景 */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-40 bg-gradient-to-b from-transparent to-brand-cream md:h-56" />
+
+      <div
+        className="relative z-10 mx-auto flex max-w-7xl flex-col items-start px-6 pt-28 md:pt-36 lg:px-8 will-change-transform"
+        style={{
+          opacity: Math.max(1 - scrollProgress * 1.25, 0),
+          transform: `translateY(${scrollProgress * -32}px)`,
+        }}
+      >
         <a
           href="#works"
           className="animate-fade-up stagger-3 mb-5 inline-flex items-center gap-2 rounded-full border border-brand-dark/15 bg-white/60 px-4 py-2 backdrop-blur-sm transition-colors hover:bg-white/80 md:mb-6"
@@ -504,6 +533,7 @@ export default function App() {
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
         />
+        <About language={language} />
       </main>
       <Footer language={language} />
     </div>

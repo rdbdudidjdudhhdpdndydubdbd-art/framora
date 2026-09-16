@@ -10,6 +10,13 @@
 
 html {
   scroll-behavior: smooth;
+  /* 分屏滚动：首页预览 / 作品集 / 联系我 三大区块，下滑一次切换一屏 */
+  scroll-snap-type: y proximity;
+}
+
+.snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 body {

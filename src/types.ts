@@ -6,6 +6,7 @@ export type PhotoCategory =
   | 'portrait'
   | 'landscape'
   | 'daily'
+  | 'wedding'
 
 export type PhotoFilter = 'all' | PhotoCategory
 
@@ -34,6 +35,7 @@ export const photoCategories: PhotoCategory[] = [
   'portrait',
   'landscape',
   'daily',
+  'wedding',
 ]
 
 export const photoFilters: PhotoFilter[] = ['all', ...photoCategories]

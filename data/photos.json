@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "photo_24ae6a9917d74be797c1f1c6e6427c4c",
+    "filename": "photo_24ae6a9917d74be797c1f1c6e6427c4c.jpg",
+    "originalUrl": "/uploads/original/photo_24ae6a9917d74be797c1f1c6e6427c4c.jpg",
+    "thumbnailUrl": "/uploads/thumbnails/photo_24ae6a9917d74be797c1f1c6e6427c4c.webp",
+    "title": "玉龙雪山下",
+    "titleEn": "",
+    "category": "daily",
+    "location": "",
+    "locationEn": "",
+    "shootDate": "2025-07-15",
+    "description": "",
+    "descriptionEn": "",
+    "featured": false,
+    "published": true,
+    "sortOrder": 1,
+    "createdAt": "2026-09-13T08:24:59.318Z"
+  }
+]

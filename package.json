@@ -14,7 +14,7 @@
     "build": "tsc -b && vite build && node scripts/write-static-photos.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "generate:og": "node scripts/generate-og.mjs",
-    "deploy": "BASE_PATH=/<repo>/ npm run build && gh-pages -d dist",
+    "deploy": "BASE_PATH=/framora/ npm run build && gh-pages -d dist",
     "test:api": "node scripts/api-smoke-test.mjs"
   },
   "dependencies": {

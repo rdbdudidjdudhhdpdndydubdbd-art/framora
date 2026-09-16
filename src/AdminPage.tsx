@@ -12,6 +12,7 @@ const categoryLabels: Record<PhotoCategory, string> = {
   portrait: '人像',
   landscape: '风景',
   daily: '日常',
+  wedding: '婚礼',
 }
 
 const inputClass =

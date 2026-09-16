@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useReveal } from '../hooks/useReveal'
 import {
   photoFilters,
   type Language,
@@ -23,6 +24,7 @@ const worksTranslations = {
       portrait: '人像',
       landscape: '风景',
       daily: '日常',
+      wedding: '婚礼',
     },
     loading: '正在载入摄影作品…',
     empty: '还没有发布摄影作品。',
@@ -41,6 +43,7 @@ const worksTranslations = {
       portrait: 'Portrait',
       landscape: 'Landscape',
       daily: 'Daily',
+      wedding: 'Wedding',
     },
     loading: 'Loading photographs…',
     empty: 'No photographs published yet.',
@@ -188,6 +191,7 @@ export default function Works({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const { ref: sectionRef, revealed } = useReveal<HTMLElement>()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -224,7 +228,13 @@ export default function Works({
   }, [selectedCategory])
 
   return (
-    <section id="works" className="bg-brand-cream py-20 md:py-28">
+    <section
+      id="works"
+      ref={sectionRef}
+      className={`snap-section min-h-screen bg-brand-cream py-20 transition-all duration-700 ease-out md:py-28 ${
+        revealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+      }`}
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-12 md:mb-16">
           <h2 className="text-2xl tracking-tight text-brand-dark md:text-3xl">

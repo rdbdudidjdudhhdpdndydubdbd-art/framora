@@ -18,6 +18,7 @@ export default {
         montserrat: ['"Montserrat"', 'sans-serif'],
         'roboto-slab': ['"Roboto Slab"', 'serif'],
         raleway: ['"Raleway"', 'sans-serif'],
+        cormorant: ['"Cormorant Garamond"', '"Songti SC"', '"Noto Serif SC"', 'serif'],
       },
     },
   },

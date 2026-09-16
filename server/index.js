@@ -28,6 +28,7 @@ const allowedCategories = new Set([
   'portrait',
   'landscape',
   'daily',
+  'wedding',
 ])
 const sessionLifetime = 12 * 60 * 60 * 1000
 const adminSessions = new Map()

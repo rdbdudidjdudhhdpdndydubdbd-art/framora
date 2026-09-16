@@ -1,7 +1,6 @@
 import type { Language } from '../types'
 
-// TODO: 部署前替换为真实邮箱
-const CONTACT_EMAIL = 'your-email@example.com'
+const CONTACT_EMAIL = 'rdbdudidjdudhhdpdndydubdbd@gmail.com'
 
 const footerTranslations = {
   'zh-CN': {
@@ -24,9 +23,9 @@ export default function Footer({ language }: { language: Language }) {
   return (
     <footer
       id="contact"
-      className="border-t border-brand-dark/10 bg-brand-cream py-16 md:py-20"
+      className="snap-section flex min-h-screen flex-col items-center justify-center border-t border-brand-dark/10 bg-brand-cream py-16 md:py-20"
     >
-      <div className="mx-auto max-w-7xl px-6 text-center lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-6 text-center lg:px-8">
         <h2 className="font-helvetica-neue text-2xl tracking-tight text-brand-dark md:text-3xl">
           {copy.heading}
         </h2>
