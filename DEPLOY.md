@@ -1,44 +1,65 @@
-# Framora 摄影网站 — 部署指南
+# Framora 摄影网站 — 自助使用指南(2026-09-16 更新)
 
-## 架构
+## 网站地址
 
-- **线上（GitHub Pages）**：纯静态站点。`npm run build` 会把已发布的照片元数据写入
-  `dist/photos.json`、把对应图片拷入 `dist/uploads/`；未发布的照片不会出现在线上。
-- **本地**：完整后台。`npm run dev` 后访问 http://localhost:5173/admin 上传和管理照片。
-  线上访问 `/admin` 只会看到「后台仅本地可用」提示。
+- 线上(任何电脑可访问):https://rdbdudidjdudhhdpdndydubdbd-art.github.io/framora/
+- 本地编辑后台:http://localhost:5173/admin(密码见 `.env` 的 `ADMIN_PASSWORD`)
+- GitHub 仓库:git@github.com:rdbdudidjdudhhdpdndydubdbd-art/framora.git(main 分支)
 
-## 首次部署
+## 日常更新照片(三步)
 
-1. **填写联系邮箱**：`src/components/Footer.tsx` 中的 `CONTACT_EMAIL`。
-2. **填写 GitHub 信息**（两处）：
-   - `index.html`：`og:image` / `twitter:image` 中的 `<username>` 和 `<repo>`；
-   - `package.json`：`deploy` 脚本中的 `BASE_PATH=/<repo>/`。
-3. 在 GitHub 上创建仓库，推代码：
-   ```sh
-   git remote add origin git@github.com:<username>/<repo>.git
-   git push -u origin master
-   ```
-4. 本地构建并部署到 gh-pages 分支：
-   ```sh
-   npm run deploy
-   ```
-5. GitHub 仓库 → Settings → Pages → Source 选择 `gh-pages` 分支，保存。
-6. 稍等一两分钟，访问 `https://<username>.github.io/<repo>/` 验证。
-7. 分享卡检查：用 https://www.opengraph.xyz 抓取你的网址，确认 og 图片正常显示。
+```bash
+# 1. 启动本地后台
+cd "/Users/wangxfei/Claud code/摄影网站/摄影网站"
+npm run dev
+```
 
-## 日常更新流程
+2. 浏览器打开 http://localhost:5173/admin,上传/编辑照片,**勾选「发布」**才会出现在线上。
+3. 编辑完,回到终端按 `Ctrl+C` 停掉后台,执行:
 
-1. 本地 `npm run dev`，打开 http://localhost:5173/admin 上传/编辑照片。
-2. `npm run deploy` 重新构建并推送线上。
+```bash
+# 4. 部署上线
+npm run deploy
+```
 
-> 照片文件和 `dist/` 不会进入 git 仓库，但 `data/photos.json`（元数据）会入库作为备份。
-> 换电脑恢复时：clone 仓库 → `npm install` → 把照片图片放回 `uploads/original` 与
-> `uploads/thumbnails` 目录即可。
+看到 `Published` 即成功,等 1~3 分钟后打开线上地址验证
+(浏览器按 `Cmd+Shift+R` 强制刷新清缓存)。
 
-## 常见问题
+## 部署机制(为什么必须跑 deploy)
 
-- **`npm run build` 报文件缺失**：某条已发布记录引用的图片文件不存在，按报错信息补上
-  文件或取消该照片的发布。
-- **分享卡没有图**：og:image 必须在 `npm run deploy` 之前填好绝对地址并重新构建。
-- **本地 `npm run dev` 起不来**：确认 `.env` 中 `ADMIN_PASSWORD` 已设置、`API_PORT` 是
-  数字端口（如 3001）。
+线上是**静态网站**,本地后台只是编辑工具。上传的照片存在本机,
+必须运行 `npm run deploy` 才会:构建 → 把已发布照片和页面推到
+GitHub 的 `gh-pages` 分支 → GitHub Pages 自动发布。**没有自动同步。**
+
+部署脚本是 `scripts/deploy-static.mjs`(自写,全量覆盖 gh-pages 分支)。
+**不要改用 gh-pages npm 包**:它会把项目 `.gitignore` 的 `uploads/*`
+排除规则带到部署目录,导致照片图片漏传、线上坏图(踩过坑)。
+
+## 线上不更新的排查顺序
+
+1. `npm run deploy` 是否输出了 `Published`?
+2. GitHub 仓库 Settings → Pages → Build and deployment 区域:
+   Source = "Deploy from a branch",Branch = `gh-pages` / `/(root)`。
+   如果删过 gh-pages 分支,GitHub 可能不再自动构建——重新点一次 **Save**
+   (或先切 GitHub Actions 再切回来)即可恢复。
+3. 浏览器强刷(`Cmd+Shift+R`)。
+
+## 修改代码后提交
+
+```bash
+git add -A
+git commit -m "描述这次改动"
+git push origin main
+```
+
+照片图片文件不进 git(太大),只有 `data/photos.json` 元数据入库作备份。
+
+## 换电脑恢复
+
+```bash
+git clone git@github.com:rdbdudidjdudhhdpdndydubdbd-art/framora.git
+cd framora && npm install
+```
+
+把照片原图放回 `uploads/original`、缩略图放回 `uploads/thumbnails`,
+之后照常 `npm run dev` → `npm run deploy`。
