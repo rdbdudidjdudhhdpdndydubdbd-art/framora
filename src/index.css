@@ -10,13 +10,6 @@
 
 html {
   scroll-behavior: smooth;
-  /* 分屏滚动：首页预览 / 作品集 / 联系我 三大区块，下滑一次切换一屏 */
-  scroll-snap-type: y proximity;
-}
-
-.snap-section {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }
 
 body {
@@ -46,6 +39,16 @@ button {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* 大图查看器打开：轻微放大 + 淡入，模拟苹果产品页的展开质感 */
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-zoom-in {
+  animation: zoom-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 .animate-fade-up {
   animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -65,7 +68,8 @@ button {
   html { scroll-behavior: auto; }
 
   .animate-fade-up,
-  .animate-fade-down {
+  .animate-fade-down,
+  .animate-zoom-in {
     animation-duration: 0.01ms;
     animation-delay: 0ms;
   }

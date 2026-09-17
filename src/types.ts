@@ -15,6 +15,9 @@ export type Photo = {
   filename: string
   originalUrl: string
   thumbnailUrl: string
+  /** 原图像素宽高，用于行式对齐布局按比例排布。 */
+  width: number
+  height: number
   title: string
   titleEn: string
   category: PhotoCategory

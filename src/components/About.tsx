@@ -41,19 +41,24 @@ const aboutTranslations = {
 
 export default function About({ language }: { language: Language }) {
   const copy = aboutTranslations[language]
-  const { ref, revealed } = useReveal<HTMLElement>()
+  const portrait = useReveal<HTMLDivElement>({ threshold: 0.2 })
+  const intro = useReveal<HTMLDivElement>({ threshold: 0.2 })
   const [portraitFailed, setPortraitFailed] = useState(false)
+
+  const revealClass = (revealed: boolean) =>
+    revealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
 
   return (
     <section
       id="about"
-      ref={ref}
-      className={`snap-section flex min-h-screen items-center bg-brand-light py-20 transition-all duration-700 ease-out md:py-28 ${
-        revealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-      }`}
+      className="snap-section flex min-h-screen items-center bg-brand-light py-20 md:py-28"
     >
       <div className="mx-auto grid w-full max-w-7xl gap-10 px-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-center md:gap-16 lg:px-8">
-        <div className="mx-auto w-full max-w-sm md:max-w-none">
+        <div
+          ref={portrait.ref}
+          style={{ transitionDelay: '0ms' }}
+          className={`mx-auto w-full max-w-sm transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] md:max-w-none ${revealClass(portrait.revealed)}`}
+        >
           {portraitFailed ? (
             <div className="flex aspect-[3/4] w-full items-center justify-center border border-brand-dark/10 bg-brand-dark/5">
               <Triangle
@@ -74,7 +79,11 @@ export default function About({ language }: { language: Language }) {
           </p>
         </div>
 
-        <div>
+        <div
+          ref={intro.ref}
+          style={{ transitionDelay: '150ms' }}
+          className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${revealClass(intro.revealed)}`}
+        >
           <p className="text-xs uppercase tracking-[0.25em] text-brand-dark/50">
             {copy.eyebrow}
           </p>

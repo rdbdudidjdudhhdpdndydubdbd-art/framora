@@ -366,6 +366,9 @@ app.post(
         await writeFile(originalPath, originalBuffer)
         createdFilePaths.push(originalPath)
 
+        // 从已烘焙方向的重编码原图读取宽高，保证与浏览器实际显示一致。
+        const orientedMetadata = await sharp(originalBuffer).metadata()
+
         await sharp(file.buffer)
           .rotate()
           .resize({ width: 1200, withoutEnlargement: true, fit: 'inside' })
@@ -378,6 +381,8 @@ app.post(
           filename,
           originalUrl: `/uploads/original/${filename}`,
           thumbnailUrl: `/uploads/thumbnails/${thumbnailFilename}`,
+          width: orientedMetadata.width || 0,
+          height: orientedMetadata.height || 0,
           title: safeString(entry.title, 200),
           titleEn: safeString(entry.titleEn, 200),
           category: normalizeCategory(entry.category),

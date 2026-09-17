@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useReveal } from '../hooks/useReveal'
 import {
@@ -33,6 +33,9 @@ const worksTranslations = {
     close: '关闭大图',
     previous: '上一张',
     next: '下一张',
+    previousPage: '上一页',
+    nextPage: '下一页',
+    pageIndicator: '第 {page} / {total} 页',
   },
   en: {
     title: 'Selected Works',
@@ -52,6 +55,9 @@ const worksTranslations = {
     close: 'Close photograph',
     previous: 'Previous photograph',
     next: 'Next photograph',
+    previousPage: 'Previous page',
+    nextPage: 'Next page',
+    pageIndicator: 'Page {page} of {total}',
   },
 } as const
 
@@ -125,7 +131,7 @@ function PhotoViewer({
       role="dialog"
       aria-modal="true"
       aria-label={title || copy.photograph}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-5 py-6 text-white md:px-12 md:py-8"
+      className="animate-zoom-in fixed inset-0 z-[100] flex items-center justify-center bg-black/95 px-5 py-6 text-white md:px-12 md:py-8"
     >
       <button
         type="button"
@@ -181,6 +187,97 @@ function PhotoViewer({
   )
 }
 
+// 单张照片卡片：进入视口时错落浮现（苹果官网式滚动动效）。
+// 宽高由行式布局计算后传入，图片以 object-cover 填满。
+function PhotoCard({
+  photo,
+  title,
+  index,
+  language,
+  width,
+  rowHeight,
+  onOpen,
+}: {
+  photo: Photo
+  title: string
+  index: number
+  language: Language
+  width: number
+  rowHeight: number
+  onOpen: () => void
+}) {
+  const copy = worksTranslations[language]
+  const { ref, revealed } = useReveal<HTMLButtonElement>({
+    threshold: 0.05,
+    rootMargin: '0px 0px -5% 0px',
+  })
+  const delay = Math.min(index, 10) * 55
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onOpen}
+      style={{
+        width: `${width}px`,
+        height: `${rowHeight}px`,
+        transitionDelay: `${delay}ms`,
+      }}
+      className={`shrink-0 text-left transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        revealed
+          ? 'translate-y-0 scale-100 opacity-100 blur-0'
+          : 'translate-y-6 scale-[0.97] opacity-0 blur-[2px]'
+      }`}
+    >
+      <img
+        src={withBase(photo.thumbnailUrl)}
+        alt={title || copy.photograph}
+        loading="lazy"
+        className="block h-full w-full object-cover transition duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] hover:shadow-xl"
+      />
+    </button>
+  )
+}
+
+// 行式对齐布局（Unsplash 风格）：每行照片等高、上下对齐，行与行高度错落，
+// 整行恰好填满容器宽度（左右对齐）。贪心算法：按目标行高累计照片，
+// 一行宽度超过容器后按比例微调该行高度，使行宽精确等于容器宽。
+const PER_PAGE = 12
+
+type PhotoRow = { photos: Photo[]; rowHeight: number }
+
+function computeRows(
+  photos: Photo[],
+  containerWidth: number,
+  targetRowHeight: number,
+  gap: number,
+): PhotoRow[] {
+  if (containerWidth <= 0) return []
+  const rows: PhotoRow[] = []
+  let row: Photo[] = []
+  let naturalWidth = 0
+
+  const ratioOf = (photo: Photo) =>
+    (photo.width || 1) / (photo.height || 1)
+
+  for (const photo of photos) {
+    row.push(photo)
+    naturalWidth += ratioOf(photo) * targetRowHeight
+
+    if (naturalWidth >= containerWidth) {
+      const scale =
+        (containerWidth - gap * (row.length - 1)) / naturalWidth
+      rows.push({ photos: row, rowHeight: Math.round(targetRowHeight * scale) })
+      row = []
+      naturalWidth = 0
+    }
+  }
+
+  // 最后一行不满时按目标行高显示，不强行拉伸。
+  if (row.length > 0) rows.push({ photos: row, rowHeight: targetRowHeight })
+  return rows
+}
+
 export default function Works({
   language,
   selectedCategory,
@@ -191,6 +288,9 @@ export default function Works({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+  const [page, setPage] = useState(1)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const gridRef = useRef<HTMLDivElement>(null)
   const { ref: sectionRef, revealed } = useReveal<HTMLElement>()
 
   useEffect(() => {
@@ -223,8 +323,57 @@ export default function Works({
     [photos, selectedCategory],
   )
 
+  // 监听作品区容器宽度，行式布局随窗口/屏幕尺寸重新计算。
+  // 网格只在照片加载完成后才渲染：首次挂载时 gridRef 还是空引用，
+  // 因此依赖里必须包含加载状态与照片数量，等网格出现后重建观察器，
+  // 否则 containerWidth 一直为 0、照片永远不显示。
+  useEffect(() => {
+    const element = gridRef.current
+    if (!element) return
+
+    // 不支持 ResizeObserver 的环境退化为容器/窗口宽度（窗口缩放不实时重排）。
+    if (typeof ResizeObserver === 'undefined') {
+      const measure = () => setContainerWidth(element.clientWidth)
+      measure()
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width
+      if (width) setContainerWidth(width)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [loading, error, filteredPhotos.length])
+
+  const totalPages = Math.max(1, Math.ceil(filteredPhotos.length / PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const pagePhotos = useMemo(
+    () => filteredPhotos.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE),
+    [filteredPhotos, currentPage],
+  )
+
+  // 响应式目标行高与间距：桌面大行、移动端小行。
+  const gap = containerWidth >= 768 ? 20 : 16
+  const targetRowHeight = containerWidth >= 1024 ? 300 : containerWidth >= 640 ? 260 : 200
+  const rows = useMemo(
+    () => computeRows(pagePhotos, containerWidth, targetRowHeight, gap),
+    [pagePhotos, containerWidth, targetRowHeight, gap],
+  )
+
+  function goToPage(nextPage: number) {
+    setPage(nextPage)
+    setViewerIndex(null)
+    // 翻页后回到作品区顶部，让照片从第一张开始重新错落浮现。
+    window.requestAnimationFrame(() => {
+      sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
   useEffect(() => {
     setViewerIndex(null)
+    setPage(1)
   }, [selectedCategory])
 
   return (
@@ -268,38 +417,86 @@ export default function Works({
         )}
 
         {!loading && !error && filteredPhotos.length > 0 && (
-          <div className="columns-1 gap-5 md:columns-2 lg:columns-3">
-            {filteredPhotos.map((photo, index) => {
-              const title = localizedPhotoField(
-                language,
-                photo.title,
-                photo.titleEn,
-              )
+          <>
+            <div ref={gridRef} className="flex flex-col" style={{ gap: `${gap}px` }}>
+              {rows.map((row, rowIndex) => {
+                const rowStartIndex = rows
+                  .slice(0, rowIndex)
+                  .reduce((count, r) => count + r.photos.length, 0)
 
-              return (
+                return (
+                  <div
+                    key={`${currentPage}-${rowIndex}`}
+                    className="flex w-full"
+                    style={{ gap: `${gap}px`, height: `${row.rowHeight}px` }}
+                  >
+                    {row.photos.map((photo, photoIndex) => {
+                      const title = localizedPhotoField(
+                        language,
+                        photo.title,
+                        photo.titleEn,
+                      )
+                      const width = Math.round(
+                        ((photo.width || 1) / (photo.height || 1)) * row.rowHeight,
+                      )
+
+                      return (
+                        <PhotoCard
+                          key={`p${currentPage}-${photo.id}`}
+                          photo={photo}
+                          title={title}
+                          index={rowStartIndex + photoIndex}
+                          language={language}
+                          width={width}
+                          rowHeight={row.rowHeight}
+                          onOpen={() =>
+                            setViewerIndex(rowStartIndex + photoIndex)
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-6 text-sm tracking-wide text-brand-dark md:mt-12">
                 <button
-                  key={photo.id}
                   type="button"
-                  onClick={() => setViewerIndex(index)}
-                  className="mb-5 block w-full break-inside-avoid text-left"
+                  disabled={currentPage <= 1}
+                  onClick={() => goToPage(currentPage - 1)}
+                  className={`transition-opacity hover:opacity-60 ${
+                    currentPage <= 1 ? 'cursor-default opacity-30' : ''
+                  }`}
                 >
-                  <img
-                    src={withBase(photo.thumbnailUrl)}
-                    alt={title || copy.photograph}
-                    loading="lazy"
-                    className="block h-auto w-full transition duration-300 hover:opacity-90 md:hover:scale-[1.01]"
-                  />
+                  ‹ {copy.previousPage}
                 </button>
-              )
-            })}
-          </div>
+                <span className="text-brand-dark/50">
+                  {copy.pageIndicator
+                    .replace('{page}', String(currentPage))
+                    .replace('{total}', String(totalPages))}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => goToPage(currentPage + 1)}
+                  className={`transition-opacity hover:opacity-60 ${
+                    currentPage >= totalPages ? 'cursor-default opacity-30' : ''
+                  }`}
+                >
+                  {copy.nextPage} ›
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {viewerIndex !== null && (
         <PhotoViewer
           language={language}
-          photos={filteredPhotos}
+          photos={pagePhotos}
           index={viewerIndex}
           onClose={() => setViewerIndex(null)}
           onIndexChange={setViewerIndex}
